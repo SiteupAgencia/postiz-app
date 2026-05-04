@@ -587,8 +587,17 @@ export class InstagramProvider
         ).json();
         console.log('in progress2', id);
 
-        let status = 'IN_PROGRESS';
+        const POLL_INTERVAL_MS = 5000;
+        const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+        const pollStartedAt = Date.now();
+        let status: string = 'IN_PROGRESS';
         while (status === 'IN_PROGRESS') {
+          if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
+            throw new Error(
+              `Instagram media container ${photoId} did not finish within ${POLL_TIMEOUT_MS / 1000}s (last status=${status}). Likely cause: Meta crawler could not fetch the video URL — verify /uploads/ is publicly reachable without CSP sandbox or robots.txt blocks.`
+            );
+          }
+          await timer(POLL_INTERVAL_MS);
           const { status_code } = await (
             await this.fetch(
               `https://${type}/v20.0/${photoId}?access_token=${accessToken}&fields=status_code`,
@@ -598,8 +607,12 @@ export class InstagramProvider
               true
             )
           ).json();
-          await timer(30000);
           status = status_code;
+        }
+        if (status !== 'FINISHED') {
+          throw new Error(
+            `Instagram media container ${photoId} ended with status=${status}. Common causes: unsupported video codec, file too large, or duration exceeds platform limits.`
+          );
         }
         console.log('in progress3', id);
 
@@ -676,8 +689,17 @@ export class InstagramProvider
         )
       ).json();
 
-      let status = 'IN_PROGRESS';
+      const POLL_INTERVAL_MS = 5000;
+      const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+      const pollStartedAt = Date.now();
+      let status: string = 'IN_PROGRESS';
       while (status === 'IN_PROGRESS') {
+        if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
+          throw new Error(
+            `Instagram carousel container ${containerId} did not finish within ${POLL_TIMEOUT_MS / 1000}s (last status=${status}). Likely cause: Meta crawler could not fetch one of the video URLs.`
+          );
+        }
+        await timer(POLL_INTERVAL_MS);
         const { status_code } = await (
           await this.fetch(
             `https://${type}/v20.0/${containerId}?fields=status_code&access_token=${accessToken}`,
@@ -687,8 +709,12 @@ export class InstagramProvider
             true
           )
         ).json();
-        await timer(30000);
         status = status_code;
+      }
+      if (status !== 'FINISHED') {
+        throw new Error(
+          `Instagram carousel container ${containerId} ended with status=${status}.`
+        );
       }
 
       const { id: mediaId, ...all4 } = await (

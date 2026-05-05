@@ -591,27 +591,33 @@ export class InstagramProvider
         const POLL_TIMEOUT_MS = 5 * 60 * 1000;
         const pollStartedAt = Date.now();
         let status: string = 'IN_PROGRESS';
+        let lastResponse: any = {};
+        let pollCount = 0;
         while (status === 'IN_PROGRESS') {
           if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
+            console.log(`[IG-DEBUG] container ${photoId} TIMEOUT after ${pollCount} polls. Last response:`, JSON.stringify(lastResponse));
             throw new Error(
-              `Instagram media container ${photoId} did not finish within ${POLL_TIMEOUT_MS / 1000}s (last status=${status}). Likely cause: Meta crawler could not fetch the video URL — verify /uploads/ is publicly reachable without CSP sandbox or robots.txt blocks.`
+              `[IG-DEBUG] Instagram media container ${photoId} did not finish within ${POLL_TIMEOUT_MS / 1000}s (last status=${status}). Last Meta response: ${JSON.stringify(lastResponse)}`
             );
           }
           await timer(POLL_INTERVAL_MS);
-          const { status_code } = await (
+          pollCount++;
+          lastResponse = await (
             await this.fetch(
-              `https://${type}/v20.0/${photoId}?access_token=${accessToken}&fields=status_code`,
+              `https://${type}/v20.0/${photoId}?access_token=${accessToken}&fields=status_code,status,id`,
               undefined,
               '',
               0,
               true
             )
           ).json();
-          status = status_code;
+          status = lastResponse.status_code;
+          console.log(`[IG-DEBUG] container ${photoId} poll #${pollCount}:`, JSON.stringify(lastResponse));
         }
         if (status !== 'FINISHED') {
+          console.log(`[IG-DEBUG] container ${photoId} REJECTED. Full Meta response:`, JSON.stringify(lastResponse));
           throw new Error(
-            `Instagram media container ${photoId} ended with status=${status}. Common causes: unsupported video codec, file too large, or duration exceeds platform limits.`
+            `[IG-DEBUG] Instagram media container ${photoId} ended with status=${status} after ${pollCount} polls. Full Meta response: ${JSON.stringify(lastResponse)}`
           );
         }
         console.log('in progress3', id);
@@ -693,27 +699,33 @@ export class InstagramProvider
       const POLL_TIMEOUT_MS = 5 * 60 * 1000;
       const pollStartedAt = Date.now();
       let status: string = 'IN_PROGRESS';
+      let lastResponse: any = {};
+      let pollCount = 0;
       while (status === 'IN_PROGRESS') {
         if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
+          console.log(`[IG-DEBUG] carousel ${containerId} TIMEOUT after ${pollCount} polls. Last response:`, JSON.stringify(lastResponse));
           throw new Error(
-            `Instagram carousel container ${containerId} did not finish within ${POLL_TIMEOUT_MS / 1000}s (last status=${status}). Likely cause: Meta crawler could not fetch one of the video URLs.`
+            `[IG-DEBUG] Instagram carousel container ${containerId} did not finish within ${POLL_TIMEOUT_MS / 1000}s. Last Meta response: ${JSON.stringify(lastResponse)}`
           );
         }
         await timer(POLL_INTERVAL_MS);
-        const { status_code } = await (
+        pollCount++;
+        lastResponse = await (
           await this.fetch(
-            `https://${type}/v20.0/${containerId}?fields=status_code&access_token=${accessToken}`,
+            `https://${type}/v20.0/${containerId}?fields=status_code,status,id&access_token=${accessToken}`,
             undefined,
             '',
             0,
             true
           )
         ).json();
-        status = status_code;
+        status = lastResponse.status_code;
+        console.log(`[IG-DEBUG] carousel ${containerId} poll #${pollCount}:`, JSON.stringify(lastResponse));
       }
       if (status !== 'FINISHED') {
+        console.log(`[IG-DEBUG] carousel ${containerId} REJECTED. Full Meta response:`, JSON.stringify(lastResponse));
         throw new Error(
-          `Instagram carousel container ${containerId} ended with status=${status}.`
+          `[IG-DEBUG] Instagram carousel container ${containerId} ended with status=${status} after ${pollCount} polls. Full Meta response: ${JSON.stringify(lastResponse)}`
         );
       }
 

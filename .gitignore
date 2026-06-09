@@ -58,3 +58,37 @@ Thumbs.db
 .secrets/
 libraries/plugins/src/plugins.ts
 i18n.cache
+
+# === Secrets / credentials (added for private repo prep) ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*credentials*
+*secret*
+
+# === Build / dependency artifacts ===
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+out/
+coverage/
+
+# === Python artifacts (in case any tooling is added) ===
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# === PHP / other ===
+vendor/
+
+# === Logs ===
+*.log
+logs/
